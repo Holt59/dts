@@ -30,11 +30,8 @@ namespace dts {
         const std::type_info *info{&typeid(void)};
         void *data{nullptr};
 
-        struct {
-            void (*copy_construct)(void*, const void*){nullptr};
-            void (*destruct)(void*){nullptr};
-
-        } manager;
+        void (*copy)(void*, const void*){nullptr};
+        void (*destruct)(void*){nullptr};
 
         // helpers
 
@@ -45,11 +42,11 @@ namespace dts {
             info = &typeid(ValueType);
 
             // update manager
-            manager.copy_construct = [](void *dst, const void* src) {
+            copy = [](void *dst, const void* src) {
                 dst = new char[sizeof(ValueType)];
                 new(dst) ValueType(*static_cast<const ValueType*>(src));
             };
-            manager.destruct = [](void *src) {
+            destruct = [](void *src) {
                 (*static_cast<ValueType*>(src)).~ValueType();
             };
 
@@ -66,9 +63,10 @@ namespace dts {
 
         any(const any& other) :
             info(other.info),
-            manager(other.manager) {
+            copy(other.copy),
+            destruct(other.destruct) {
             if (other.data) {
-                manager.copy_construct(data, other.data);
+                copy(data, other.data);
             }
         }
 
@@ -155,7 +153,7 @@ namespace dts {
 
         void reset() noexcept {
             if (has_value()) {
-                manager.destruct(data);
+                destruct(data);
                 delete[] static_cast<char*>(data);
                 data = nullptr;
                 info = &typeid(void);
@@ -165,7 +163,8 @@ namespace dts {
         void swap(any& other) noexcept {
             std::swap(info, other.info);
             std::swap(data, other.data);
-            std::swap(manager, other.manager);
+            std::swap(copy, other.copy);
+            std::swap(destruct, other.destruct);
         }
 
         // accessor
