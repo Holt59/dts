@@ -4,15 +4,9 @@
 #include <type_traits>
 #include <typeinfo>
 
+#include "utility.hpp"
+
 namespace dts {
-
-    template <class T>
-    struct in_place_type_t {
-        explicit in_place_type_t() = default;
-    };
-
-    template <class T>
-    constexpr in_place_type_t<T> in_place_type{};
 
     class bad_any_cast : public std::bad_cast { };
 
