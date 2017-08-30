@@ -31,11 +31,7 @@ namespace dts {
         void *data{nullptr};
 
         struct {
-            std::size_t alloc_size{0};
             void (*copy_construct)(void*, const void*){nullptr};
-            void (*move_construct)(void*, const void*){nullptr};
-            void (*copy_assign)(void*, const void*){nullptr};
-            void (*move_assign)(void*, const void*){nullptr};
             void (*destruct)(void*){nullptr};
 
         } manager;
@@ -49,27 +45,16 @@ namespace dts {
             info = &typeid(ValueType);
 
             // update manager
-            manager.alloc_size = sizeof(ValueType);
             manager.copy_construct = [](void *dst, const void* src) {
+                dst = new char[sizeof(ValueType)];
                 new(dst) ValueType(*static_cast<const ValueType*>(src));
-            };
-            manager.move_construct = [](void *dst, const void* src) {
-                new(dst) ValueType(std::move(*static_cast<const ValueType*>(src)));
-            };
-            manager.copy_construct = [](void *dst, const void* src) {
-                *static_cast<ValueType*>(dst)
-                = *static_cast<const ValueType*>(src);
-            };
-            manager.move_construct = [](void *dst, const void* src) {
-                *static_cast<ValueType*>(dst)
-                = std::move(*static_cast<const ValueType*>(src));
             };
             manager.destruct = [](void *src) {
                 (*static_cast<ValueType*>(src)).~ValueType();
             };
 
             // allocate storage and construct object
-            data = new char[manager.alloc_size];
+            data = new char[sizeof(ValueType)];
             return *(new(data) ValueType(std::forward<Args>(args)...));
         }
 
@@ -83,7 +68,6 @@ namespace dts {
             info(other.info),
             manager(other.manager) {
             if (other.data) {
-                data = new char[manager.alloc_size];
                 manager.copy_construct(data, other.data);
             }
         }
